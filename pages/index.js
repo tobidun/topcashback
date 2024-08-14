@@ -10,12 +10,15 @@ const RedeemOffer = () => {
   // Function to fetch callbackUrl from your Next.js API
   const fetchCallbackUrl = async () => {
     try {
-      const response = await fetch("http://localhost:3000/api/verifyToken", {
-        method: "GET", // Adjust this based on your request type
-        headers: {
-          "Content-Type": "application/json", // Adjust if needed
-        },
-      });
+      const response = await fetch(
+        "https://loyaltyclub.peernetics.io/api/verifyToken",
+        {
+          method: "GET", // Adjust this based on your request type
+          headers: {
+            "Content-Type": "application/json", // Adjust if needed
+          },
+        }
+      );
 
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`);
