@@ -1,15 +1,45 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/router";
 
-const RedeemOffer = ({ session, uniqueId, walletId, callbackUrl }) => {
+const RedeemOffer = () => {
   const [result, setResult] = useState("");
   const [loading, setLoading] = useState(true);
+  const callbackUrlRef = useRef(null);
   const router = useRouter();
 
-  // Verify the offer token
-  const verifyToken = async () => {
+  // Function to fetch callbackUrl from your Next.js API
+  const fetchCallbackUrl = async () => {
     try {
-      if (session && uniqueId && walletId) {
+      const response = await fetch(
+        "https://loyaltyclub.peernetics.io/api/verifyToken",
+        {
+          method: "GET", // Adjust this based on your request type
+          headers: {
+            "Content-Type": "application/json", // Adjust if needed
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log(data);
+      return data.callbackUrl; // Assuming your API returns an object with callbackUrl
+    } catch (error) {
+      console.log("Error fetching callback URL:", error);
+      setResult("⚠️ Failed to fetch callback URL.");
+      setLoading(false);
+    }
+  };
+
+  // Verify the offer token
+  const verifyToken = async (session, uniqueId, walletId) => {
+    try {
+      const callbackUrl = callbackUrlRef.current;
+      console.log(callbackUrl);
+      if (session && uniqueId && walletId && callbackUrl) {
         const requestBody = {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -31,7 +61,9 @@ const RedeemOffer = ({ session, uniqueId, walletId, callbackUrl }) => {
 
         if (resultData.valid) {
           setResult("🎉 Offer redeemed successfully!");
-          router.push("/offers"); // Redirect to the offers page
+          setTimeout(() => {
+            router.push("/offers"); // Redirect to the offers page after a short delay
+          }, 3000);
         } else {
           setResult("⚠️ Invalid or expired offer.");
         }
@@ -47,8 +79,19 @@ const RedeemOffer = ({ session, uniqueId, walletId, callbackUrl }) => {
   };
 
   useEffect(() => {
-    verifyToken();
-  }, []);
+    const { session, uniqueId, walletId } = router.query;
+
+    if (session && uniqueId && walletId) {
+      setTimeout(async () => {
+        const url = await fetchCallbackUrl();
+        console.log(url);
+        callbackUrlRef.current = url; // Store the URL in the ref
+        if (url) {
+          await verifyToken(session, uniqueId, walletId);
+        }
+      }, 3000); // 3-second delay before verification starts
+    }
+  }, [router.query]);
 
   const getResultColor = () => {
     if (result.includes("successfully")) return "#28a745"; // Green for success
