@@ -1,33 +1,32 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 
-const RedeemOffer = () => {
+const RedeemOffer = ({ session, uniqueId, walletId, callbackUrl }) => {
   const [result, setResult] = useState("");
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   // Verify the offer token
   const verifyToken = async () => {
     try {
-      const urlParams = new URLSearchParams(window.location.search);
-      const token = urlParams.get("session");
-      const uniqueId = urlParams.get("uniqueId");
-      const walletId = urlParams.get("walletId");
-      const callbackUrl = decodeURIComponent(urlParams.get("callbackUrl"));
-
-      if (token && uniqueId && walletId) {
+      if (session && uniqueId && walletId) {
         const requestBody = {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ walletId, token }),
+          body: JSON.stringify({ walletId, token: session }),
         };
 
-        const response = await fetch(callbackUrl, requestBody);
+        const response = await fetch(
+          decodeURIComponent(callbackUrl),
+          requestBody
+        );
 
         if (!response.ok) {
           const errorText = await response.text();
           console.log("Error Response Text:", errorText);
           throw new Error(`HTTP error! Status: ${response.status}`);
         }
+
         const resultData = await response.json();
 
         if (resultData.valid) {
@@ -42,6 +41,8 @@ const RedeemOffer = () => {
     } catch (error) {
       console.log("Error verifying token:", error);
       setResult("⚠️ Invalid or expired token.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -68,7 +69,7 @@ const RedeemOffer = () => {
     <div style={{ ...styles.container, background: getBackgroundGradient() }}>
       <h1 style={styles.title}>Redeem Offer</h1>
       <div id="result" style={{ ...styles.result, color: getResultColor() }}>
-        {result}
+        {loading ? "Verifying offer, please wait..." : result}
       </div>
     </div>
   );
